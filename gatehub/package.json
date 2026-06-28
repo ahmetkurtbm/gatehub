@@ -6,23 +6,39 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "postinstall": "prisma generate",
+    "lint": "eslint",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "auth:generate": "auth generate --config ./lib/auth.ts --output ./prisma/schema.prisma"
   },
   "dependencies": {
+    "@better-auth/oauth-provider": "^1.6.22",
+    "@better-auth/prisma-adapter": "^1.6.22",
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
-    "next": "^9.3.3",
-    "prisma": "^6.19.3",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "better-auth": "^1.6.22",
+    "next": "^16.2.9",
+    "pg": "^8.22.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@hono/node-server": "1.19.13",
+    "postcss": "8.5.10"
   }
 }
