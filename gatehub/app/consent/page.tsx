@@ -27,7 +27,21 @@ export default async function ConsentPage({
     redirect(`/login?${query.toString()}`);
   }
 
+  // Get client details to show project name instead of ID
   const clientId = typeof params.client_id === "string" ? params.client_id : "Bilinmeyen uygulama";
+  
+  let clientName = clientId;
+  try {
+    const requestHeaders = await headers();
+    const clients = await auth.api.getOAuthClients({ headers: requestHeaders });
+    const client = clients?.find((c) => c.client_id === clientId);
+    if (client?.client_name) {
+      clientName = client.client_name;
+    }
+  } catch {
+    // Fallback to client_id if we can't get client details
+  }
+
   const scope = typeof params.scope === "string" ? params.scope : "openid profile email";
   const scopes = scope.split(" ").filter(Boolean);
 
@@ -38,9 +52,9 @@ export default async function ConsentPage({
         <Brand />
         <div className="auth-copy">
           <span className="status-pill">Erişim isteği</span>
-          <h1>Bir uygulama hesabına erişmek istiyor</h1>
+          <h1>&ldquo;{clientName}&rdquo; hesabına erişmek istiyor</h1>
           <p>
-            <code>{clientId}</code> aşağıdaki bilgilere erişmek için izin istiyor.
+            Aşağıdaki bilgilere erişmek için izin istiyor.
           </p>
         </div>
         <ul className="scope-list">
