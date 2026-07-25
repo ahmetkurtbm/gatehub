@@ -2,14 +2,44 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
 export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
+  const searchParams = useSearchParams();
+  const isOAuthFlow = searchParams.has("client_id");
   const [mode, setMode] = useState<"login" | "register">("login");
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  function redirectUrl(data: unknown) {
+    if (data && typeof data === "object" && "url" in data && typeof data.url === "string") {
+      return data.url;
+    }
+    return undefined;
+  }
+
+  async function continueOAuthFlow(possibleUrl?: string) {
+    if (possibleUrl) {
+      window.location.assign(possibleUrl);
+      return true;
+    }
+
+    const result = await authClient.oauth2.continue({ selected: true });
+    if (result.data?.url) {
+      window.location.assign(result.data.url);
+      return true;
+    }
+
+    if (result.error) {
+      setError(result.error.message ?? "Uygulama bağlantısı tamamlanamadı.");
+      return true;
+    }
+
+    return false;
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -18,12 +48,15 @@ export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
     const submittedEmail = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
     const result = mode === "register"
-      ? await authClient.signUp.email({ name: String(data.get("name") ?? "").trim(), email: submittedEmail, password, callbackURL: "/dashboard" })
-      : await authClient.signIn.email({ email: submittedEmail, password, callbackURL: "/dashboard" });
+      ? await authClient.signUp.email({ name: String(data.get("name") ?? "").trim(), email: submittedEmail, password, callbackURL: isOAuthFlow ? window.location.href : "/dashboard" })
+      : await authClient.signIn.email({ email: submittedEmail, password, callbackURL: isOAuthFlow ? window.location.href : "/dashboard" });
 
     if (result.error) setError(result.error.message ?? "İşlem tamamlanamadı.");
     else if (mode === "register") setMessage("Doğrulama bağlantısını e-posta adresine gönderdik.");
-    else window.location.href = "/dashboard";
+    else if (isOAuthFlow) {
+      const handled = await continueOAuthFlow(redirectUrl(result.data));
+      if (!handled) setError("Uygulama bağlantısı için yönlendirme adresi alınamadı.");
+    } else window.location.href = "/dashboard";
     setLoading(false);
   }
 
@@ -41,7 +74,9 @@ export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
 
   async function googleSignIn() {
     setLoading(true); setError(null);
-    const result = await authClient.signIn.social({ provider: "google", callbackURL: "/dashboard" });
+    const result = await authClient.signIn.social({ provider: "google", callbackURL: isOAuthFlow ? window.location.href : "/dashboard" });
+    const nextUrl = redirectUrl(result.data);
+    if (isOAuthFlow && nextUrl) window.location.assign(nextUrl);
     if (result.error) { setError(result.error.message ?? "Google girişi başlatılamadı."); setLoading(false); }
   }
 

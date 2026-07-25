@@ -27,16 +27,25 @@ export default async function ConsentPage({
     redirect(`/login?${query.toString()}`);
   }
 
-  // Get client details to show project name instead of ID
   const clientId = typeof params.client_id === "string" ? params.client_id : "Bilinmeyen uygulama";
-  
+
   let clientName = clientId;
   try {
     const requestHeaders = await headers();
     const clients = await auth.api.getOAuthClients({ headers: requestHeaders });
     const client = clients?.find((c) => c.client_id === clientId);
-    if (client?.client_name) {
-      clientName = client.client_name;
+    const displayName =
+      client?.client_name ??
+      (client as { clientName?: string } | undefined)?.clientName ??
+      client?.client_uri ??
+      (client as { clientUri?: string } | undefined)?.clientUri;
+
+    if (displayName) {
+      try {
+        clientName = new URL(displayName).hostname;
+      } catch {
+        clientName = displayName;
+      }
     }
   } catch {
     // Fallback to client_id if we can't get client details
