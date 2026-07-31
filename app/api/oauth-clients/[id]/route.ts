@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
+import { log } from "@/lib/otel-logs";
 import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
@@ -29,9 +30,13 @@ export async function DELETE(
       where: { clientId },
     });
 
+    log.info("OAuth istemcisi silindi", { clientId, userId: session.user.id });
     return new Response(null, { status: 204 });
   } catch (error) {
-    console.error("Delete client error:", error);
+    log.error("OAuth istemcisi silinemedi", {
+      clientId,
+      reason: error instanceof Error ? error.message : String(error),
+    });
     return new Response("Internal server error", { status: 500 });
   }
 }
@@ -60,7 +65,10 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     const updated = await auth.api.rotateClientSecret({ headers: requestHeaders, body: { client_id: clientId } });
     return Response.json({ client_secret: updated.client_secret });
   } catch (error) {
-    console.error("Rotate client secret error:", error);
+    log.error("Client secret yenilenemedi", {
+      clientId,
+      reason: error instanceof Error ? error.message : String(error),
+    });
     return Response.json({ error: "Secret yenilenemedi." }, { status: 400 });
   }
 }
