@@ -2,6 +2,8 @@
 
 GateHub, birden fazla uygulama için merkezi kimlik doğrulama ve SSO altyapısıdır. Kullanıcılar burada oturum açar, bağlı uygulamalar GateHub üzerinden OAuth 2.1 / OpenID Connect ile giriş yapar. Örnek istemci: [ControlPanel](https://github.com/ahmetkurtbm/controlpanel).
 
+![GateHub giriş ekranı](docs/screenshots/ekran.png)
+
 ## Özellikler
 
 - **Merkezi oturum açma** — tek kullanıcı hesabı, birden fazla uygulamada tek giriş
