@@ -1,6 +1,7 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
+import { randomUUID } from "node:crypto";
+import { query } from "@/lib/db";
 
 type AuditInput = {
   action: string;
@@ -13,16 +14,10 @@ type AuditInput = {
 
 export async function recordAudit(input: AuditInput) {
   try {
-    await prisma.auditLog.create({
-      data: {
-        action: input.action,
-        targetType: input.targetType,
-        targetId: input.targetId,
-        ipAddress: input.ipAddress,
-        userAgent: input.userAgent,
-        user: input.userId ? { connect: { id: input.userId } } : undefined,
-      },
-    });
+    await query(
+      `insert into "auditLog" ("id", "action", "userId", "targetType", "targetId", "ipAddress", "userAgent") values ($1, $2, $3, $4, $5, $6, $7)`,
+      [randomUUID(), input.action, input.userId ?? null, input.targetType ?? null, input.targetId ?? null, input.ipAddress ?? null, input.userAgent ?? null],
+    );
   } catch (error) {
     console.error("Audit kaydı oluşturulamadı:", error);
   }

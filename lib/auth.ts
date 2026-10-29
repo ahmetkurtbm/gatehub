@@ -2,7 +2,6 @@ import "server-only";
 
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { prismaAdapter } from "better-auth/adapters/prisma";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { admin, jwt, twoFactor } from "better-auth/plugins";
@@ -10,7 +9,7 @@ import { recordAudit } from "@/lib/audit";
 import { registerLoginDevice } from "@/lib/device-security";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
 import { archivePassword, assertPasswordNotReused } from "@/lib/password-history";
-import { prisma } from "@/lib/prisma";
+import { authDatabase, isDemoMode, query } from "@/lib/db";
 
 const googleConfigured = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
@@ -50,14 +49,15 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
   secret: authSecret(),
   trustedOrigins,
-  database: prismaAdapter(prisma, { provider: "postgresql" }),
+  database: authDatabase,
   disabledPaths: ["/token"],
   user: {
     deleteUser: { enabled: true },
   },
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    // The demo has no mail service, so sign-ups there are usable straight away.
+    requireEmailVerification: !isDemoMode(),
     minPasswordLength: 12,
     maxPasswordLength: 128,
     revokeSessionsOnPasswordReset: true,
@@ -66,8 +66,8 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
-    sendOnSignUp: true,
-    sendOnSignIn: true,
+    sendOnSignUp: !isDemoMode(),
+    sendOnSignIn: !isDemoMode(),
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60,
     sendVerificationEmail: async ({ user, url }) => {
@@ -129,7 +129,7 @@ export const auth = betterAuth({
       if (ctx.path === "/reset-password") {
         const body = ctx.body as { token?: string; newPassword?: string } | undefined;
         if (body?.token && body.newPassword) {
-          const verification = await prisma.verification.findFirst({ where: { identifier: `reset-password:${body.token}` } });
+          const [verification] = await query<{ value: string }>(`select "value" from "verification" where "identifier" = $1 limit 1`, [`reset-password:${body.token}`]);
           if (verification) {
             const previousHash = await assertPasswordNotReused(verification.value, body.newPassword);
             await archivePassword(verification.value, previousHash);

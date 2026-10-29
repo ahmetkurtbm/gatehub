@@ -1,12 +1,13 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { verifyPassword } from "better-auth/crypto";
 import { APIError } from "better-auth/api";
-import { prisma } from "@/lib/prisma";
+import { query } from "@/lib/db";
 
 export async function assertPasswordNotReused(userId: string, newPassword: string) {
-  const [account, history] = await Promise.all([
-    prisma.account.findFirst({ where: { userId, providerId: "credential" }, select: { password: true } }),
-    prisma.passwordHistory.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 5, select: { hash: true } }),
+  const [[account], history] = await Promise.all([
+    query<{ password: string | null }>(`select "password" from "account" where "userId" = $1 and "providerId" = 'credential' limit 1`, [userId]),
+    query<{ hash: string }>(`select "hash" from "passwordHistory" where "userId" = $1 order by "createdAt" desc limit 5`, [userId]),
   ]);
   const hashes = [account?.password, ...history.map((item) => item.hash)].filter((hash): hash is string => Boolean(hash));
   for (const hash of hashes) {
@@ -17,8 +18,11 @@ export async function assertPasswordNotReused(userId: string, newPassword: strin
 
 export async function archivePassword(userId: string, hash: string | null) {
   if (!hash) return;
-  const exists = await prisma.passwordHistory.findFirst({ where: { userId, hash } });
-  if (!exists) await prisma.passwordHistory.create({ data: { userId, hash } });
-  const old = await prisma.passwordHistory.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, skip: 5, select: { id: true } });
-  if (old.length) await prisma.passwordHistory.deleteMany({ where: { id: { in: old.map((item) => item.id) } } });
+  const [exists] = await query(`select 1 from "passwordHistory" where "userId" = $1 and "hash" = $2`, [userId, hash]);
+  if (!exists) await query(`insert into "passwordHistory" ("id", "userId", "hash") values ($1, $2, $3)`, [randomUUID(), userId, hash]);
+  // Only the last 5 passwords are kept.
+  await query(
+    `delete from "passwordHistory" where "id" in (select "id" from "passwordHistory" where "userId" = $1 order by "createdAt" desc offset 5)`,
+    [userId],
+  );
 }

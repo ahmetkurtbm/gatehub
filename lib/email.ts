@@ -1,6 +1,7 @@
 import "server-only";
 
 import nodemailer from "nodemailer";
+import { isDemoMode } from "@/lib/db";
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({
@@ -13,6 +14,8 @@ function escapeHtml(value: string) {
 }
 
 async function sendEmail(to: string, subject: string, intro: string, url: string, button: string) {
+  // The demo has no mail service; verification is switched off there instead.
+  if (isDemoMode()) return;
   const gmailUser = process.env.GMAIL_USER;
   const gmailAppPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, "");
   const apiKey = process.env.RESEND_API_KEY;

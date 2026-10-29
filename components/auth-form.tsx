@@ -5,7 +5,9 @@ import { FormEvent, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
-export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
+type DemoAccount = { email: string; password: string };
+
+export function AuthForm({ googleEnabled, demo }: { googleEnabled: boolean; demo?: DemoAccount }) {
   const searchParams = useSearchParams();
   const isOAuthFlow = searchParams.has("client_id");
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -43,16 +45,19 @@ export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true); setError(null); setMessage(null);
     const data = new FormData(event.currentTarget);
-    const submittedEmail = String(data.get("email") ?? "").trim();
-    const password = String(data.get("password") ?? "");
-    const result = mode === "register"
-      ? await authClient.signUp.email({ name: String(data.get("name") ?? "").trim(), email: submittedEmail, password, callbackURL: isOAuthFlow ? window.location.href : "/dashboard" })
+    await authenticate(mode, String(data.get("email") ?? "").trim(), String(data.get("password") ?? ""), String(data.get("name") ?? "").trim());
+  }
+
+  async function authenticate(action: "login" | "register", submittedEmail: string, password: string, name = "") {
+    setLoading(true); setError(null); setMessage(null);
+    const result = action === "register"
+      ? await authClient.signUp.email({ name, email: submittedEmail, password, callbackURL: isOAuthFlow ? window.location.href : "/dashboard" })
       : await authClient.signIn.email({ email: submittedEmail, password, callbackURL: isOAuthFlow ? window.location.href : "/dashboard" });
 
+    // In the demo there is no e-mail verification, so a new account is signed in right away.
     if (result.error) setError(result.error.message ?? "İşlem tamamlanamadı.");
-    else if (mode === "register") setMessage("Doğrulama bağlantısını e-posta adresine gönderdik.");
+    else if (action === "register" && !demo) setMessage("Doğrulama bağlantısını e-posta adresine gönderdik.");
     else if (isOAuthFlow) {
       const handled = await continueOAuthFlow(redirectUrl(result.data));
       if (!handled) setError("Uygulama bağlantısı için yönlendirme adresi alınamadı.");
@@ -82,6 +87,12 @@ export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
 
   return (
     <div>
+      {demo && (
+        <div className="auth-demo">
+          <p><strong>Demo sürümü.</strong> Veriler geçicidir; e-posta doğrulaması kapalıdır.</p>
+          <button type="button" className="auth-submit" disabled={loading} onClick={() => authenticate("login", demo.email, demo.password)}>Demo hesabıyla gir</button>
+        </div>
+      )}
       <div className="auth-tabs" role="tablist">
         <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")} type="button">Giriş yap</button>
         <button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")} type="button">Kayıt ol</button>

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 import { AuthForm } from "@/components/auth-form";
 import { auth, isGoogleConfigured } from "@/lib/auth";
+import { DEMO_ACCOUNT, isDemoMode } from "@/lib/db";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
@@ -20,7 +21,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <h1>Hesabına giriş yap</h1>
           <p>{isOAuthFlow ? "Uygulamaya güvenle devam etmek için giriş yap." : "Hesabına erişmek için bilgilerini gir."}</p>
         </div>
-        <AuthForm googleEnabled={isGoogleConfigured()} />
+        <AuthForm googleEnabled={isGoogleConfigured()} demo={isDemoMode() ? { email: DEMO_ACCOUNT.email, password: DEMO_ACCOUNT.password } : undefined} />
       </section>
     </main>
   );

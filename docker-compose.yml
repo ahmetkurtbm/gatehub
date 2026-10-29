@@ -1,0 +1,19 @@
+# Yerel geliştirme veritabanı. Bağlantı: postgres://gatehub:gatehub@localhost:5437/gatehub
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: gatehub
+      POSTGRES_PASSWORD: gatehub
+      POSTGRES_DB: gatehub
+    ports:
+      - "127.0.0.1:5437:5432"
+    volumes:
+      - gatehub-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gatehub"]
+      interval: 2s
+      retries: 20
+
+volumes:
+  gatehub-db:

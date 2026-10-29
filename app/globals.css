@@ -1575,3 +1575,6 @@ code {
 .admin-filter-bar{display:grid;margin-bottom:16px;padding:14px;grid-template-columns:minmax(260px,1.5fr) repeat(3,minmax(140px,.7fr)) auto auto;gap:9px;border:1px solid #e0e6ef;border-radius:14px;background:white}.admin-filter-bar label{display:flex;align-items:center;gap:8px;padding:0 11px;border:1px solid #d8e0eb;border-radius:9px}.admin-filter-bar label input{border:0;outline:0}.admin-filter-bar input,.admin-filter-bar select{min-height:40px;padding:0 10px;border:1px solid #d8e0eb;border-radius:9px;background:white;color:#475467;font:inherit;font-size:11px}
 @media(max-width:1000px){.admin-filter-bar{grid-template-columns:1fr 1fr}.two-factor-setup{grid-template-columns:1fr}.backup-code-box>div{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.admin-filter-bar{grid-template-columns:1fr}.two-factor-setup form{flex-direction:column}.backup-code-box>div{grid-template-columns:1fr 1fr}}
+
+.auth-demo { display:grid; gap:10px; margin-bottom:18px; padding:14px; border-radius:14px; background:#eef5ff; border:1px solid #cfe0fb; font-size:13px; color:#10233f; }
+.auth-demo p { margin:0; }

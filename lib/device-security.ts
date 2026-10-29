@@ -1,21 +1,24 @@
 import "server-only";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { sendNewDeviceAlert } from "@/lib/email";
-import { prisma } from "@/lib/prisma";
+import { query } from "@/lib/db";
 
 export async function registerLoginDevice(session: { userId: string; userAgent?: string | null; ipAddress?: string | null }) {
   const userAgent = session.userAgent ?? "unknown";
   const ipAddress = normalizeIp(session.ipAddress);
   const fingerprint = createHash("sha256").update(`${userAgent}|${ipAddress}`).digest("hex");
-  const existing = await prisma.knownDevice.findUnique({ where: { userId_fingerprint: { userId: session.userId, fingerprint } } });
+  const [existing] = await query<{ id: string }>(`select "id" from "knownDevice" where "userId" = $1 and "fingerprint" = $2`, [session.userId, fingerprint]);
   if (existing) {
-    await prisma.knownDevice.update({ where: { id: existing.id }, data: { userAgent, ipAddress } });
+    await query(`update "knownDevice" set "userAgent" = $2, "ipAddress" = $3, "lastSeenAt" = now() where "id" = $1`, [existing.id, userAgent, ipAddress]);
     return;
   }
-  const previousDeviceCount = await prisma.knownDevice.count({ where: { userId: session.userId } });
-  await prisma.knownDevice.create({ data: { userId: session.userId, fingerprint, userAgent, ipAddress } });
+  const [{ count: previousDeviceCount }] = await query<{ count: number }>(`select count(*)::int as count from "knownDevice" where "userId" = $1`, [session.userId]);
+  await query(
+    `insert into "knownDevice" ("id", "userId", "fingerprint", "userAgent", "ipAddress", "lastSeenAt") values ($1, $2, $3, $4, $5, now())`,
+    [randomUUID(), session.userId, fingerprint, userAgent, ipAddress],
+  );
   if (previousDeviceCount === 0) return;
-  const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { email: true, name: true } });
+  const [user] = await query<{ email: string; name: string }>(`select "email", "name" from "user" where "id" = $1`, [session.userId]);
   if (user) await sendNewDeviceAlert(user.email, user.name);
 }
 

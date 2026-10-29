@@ -7,5 +7,14 @@ const securityHeaders = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
 ];
-const nextConfig: NextConfig = { output: "standalone", poweredByHeader: false, async headers(){return [{source:"/(.*)",headers:securityHeaders}]} };
+const nextConfig: NextConfig = {
+  output: "standalone",
+  poweredByHeader: false,
+  serverExternalPackages: ["@electric-sql/pglite", "pg"],
+  // Demo mode reads the migrations and the PGlite WASM at runtime.
+  outputFileTracingIncludes: {
+    "/**/*": ["./db/migrations/*.sql", "./node_modules/@electric-sql/pglite/dist/{pglite.wasm,pglite.data,initdb.wasm}"],
+  },
+  async headers(){return [{source:"/(.*)",headers:securityHeaders}]},
+};
 export default nextConfig;
