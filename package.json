@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:setup": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/db.mjs setup",
-    "db:reset": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/db.mjs reset"
+    "db:reset": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/db.mjs reset",
+    "test": "vitest run"
   },
   "dependencies": {
     "@better-auth/oauth-provider": "^1.6.22",
@@ -37,7 +38,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.12"
   },
   "overrides": {
     "@hono/node-server": "1.19.13",
